@@ -5,7 +5,11 @@ import requests
 import ssl
 import logging
 from threading import Thread
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
 # Configure logging
@@ -17,12 +21,50 @@ logger = logging.getLogger(__name__)
 
 # Flask app for health checks
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32).hex())
+
+# Rate limiting
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# HTTP Basic Authentication
+auth = HTTPBasicAuth()
+
+# Load credentials from environment
+_users = {
+    os.getenv('API_USERNAME', 'admin'): generate_password_hash(
+        os.getenv('API_PASSWORD', 'admin')
+    )
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in _users and check_password_hash(_users[username], password):
+        return username
+    return None
+
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    from security.config import get_security_headers
+    headers = get_security_headers()
+    for key, value in headers.items():
+        response.headers[key] = value
+    return response
 
 @app.route('/health')
+@auth.login_required
+@limiter.limit("100 per minute")
 def health_check():
     return jsonify({"status": "healthy", "service": "god-mode-quant-orchestrator"})
 
 @app.route('/metrics')
+@auth.login_required
+@limiter.limit("50 per minute")
 def metrics():
     """Prometheus metrics endpoint"""
     from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
