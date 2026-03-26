@@ -1,0 +1,38 @@
+groups:
+- name: trading-alerts
+  rules:
+  - alert: HighTradeFailureRate
+    expr: rate(trade_failures_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High trade failure rate ({{ $value }} failures per second)"
+      description: "Trade failure rate is above 10% for more than 2 minutes."
+
+  - alert: LowTrustScore
+    expr: trust_score{service_or_user=~".*"} < 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low trust score for {{ $labels.service_or_user }} ({{ $value }})"
+      description: "Trust score has dropped below 50 for more than 5 minutes."
+
+  - alert: CertificateExpiringSoon
+    expr: certificate_not_after_seconds{certificate=~".*"} < 86400
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Certificate {{ $labels.certificate }} expiring soon"
+      description: "Certificate will expire in less than 24 hours."
+
+  - alert: MLModelPredictionFailure
+    expr: ml_prediction_errors_total{model_type=~".*"} > 5
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "ML model prediction failures ({{ $value }} errors)"
+      description: "ML model has encountered more than 5 prediction errors in 2 minutes."

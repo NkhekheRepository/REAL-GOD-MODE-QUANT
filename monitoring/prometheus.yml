@@ -1,0 +1,53 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: 'trading-orchestrator'
+    static_configs:
+      - targets: ['trading-orchestrator:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'telegram-bot-handler'
+    static_configs:
+      - targets: ['telegram-bot-handler:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  - job_name: 'prometheus-metrics'
+    static_configs:
+      - targets: ['prometheus-metrics:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'ml-time-series-forecast'
+    static_configs:
+      - targets: ['ml-time-series-forecast:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'ml-sentiment-analysis'
+    static_configs:
+      - targets: ['ml-sentiment-analysis:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 10s
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
